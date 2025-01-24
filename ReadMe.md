@@ -20,3 +20,8 @@ use:
 ```
 $ make test v=1
 ```
+
+
+## Discuss
+
+Please use https://github.com/pkgys/schemays/discussions to help determine directions for this project.
