@@ -1,0 +1,74 @@
+!yamlscript/v0
+
+ns: schemays::deftype
+
+defn- map+(spec name='map-type'):
+  fn(map):
+    when-not map?(map):
+      die: |
+        Failed type '$name' check - not a map:
+        $map
+    new =:
+      pairs =: spec:seq
+      loop [[key spec] *pair] pairs, new map:
+        new =:
+          key opt =:
+            re-opt =: /\ +\?$/
+            if key =~ re-opt:
+              -[key.replace(re-opt) true]
+               [key false]
+          val =: new.$key
+          type =:
+            if spec:string?:
+              deft-dsl: spec
+              else: spec
+          if val:nil?:
+            if-not opt:
+              die: |
+                Missing key '$key' in:
+                $map
+              else: new
+            else:
+              call type: val
+              dissoc new: key
+        if pair.?:
+          recur: pair new
+          else: new
+    if new.?:
+      die: |
+        Mapping has unknown keys:
+        $(yaml/dump(new:keys):chomp)
+      else: map
+
+defn- list+(type name='list-type'):
+  fn(vals):
+    if vals:sequential?:
+      each val vals:
+        type: val
+      else:
+        die: "Failed $name. Not a list: $val"
+
+#------------------------------------------------------------------------------
+=>: !clj |
+  (defmacro deft-map
+   ([spec] `(deft-map+ ~spec))
+   ([name spec] `(intern *ns* '~name (map+ ~spec (str '~name)))))
+
+  (defmacro deft-list
+   ([spec] `(deft-list+ ~spec))
+   ([name spec] `(intern *ns* '~name (list+ ~spec (str '~name)))))
+
+# XXX Would like to DRY the above macros.
+
+# =>: !clj |
+#   (defmacro deft-call [dname]
+#     (let [fname (symbol (str dname "+"))
+#           ns *ns*]
+#       `(defn ~dname
+#         ([spec#] (~fname spec#))
+#         ([name# spec#]
+#          (intern ~ns 'name# (~fname spec# (str 'name#)))))))
+#
+# deft-call: map
+# deft-call: fn
+# deft-call: list

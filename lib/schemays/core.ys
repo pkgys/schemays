@@ -1,0 +1,60 @@
+!yamlscript/v0
+
+ns: schemays::core
+
+defn int():
+  fn(n):
+    when-not n:int?:
+      die: "$(pr-str n) is not an integer"
+    =>: n
+
+defn rng(x y):
+  when-not x || y:
+    die: "Range must have start or end number"
+  x =: x && x:N
+  y =: y && y:N
+  when x && y && (x >= y):
+    die "$x is not less than $y"
+  fun =:
+    fn(f):
+      fn(n):
+        when-not f(n):
+          die: "$n is not in range $x..$y"
+        =>: n
+  cond:
+    not(x): fun(\(_ <= y))
+    not(y): fun(\(_ >= x))
+    else:   fun(\(x <= _ <= y))
+
+defn rgx(rgx):
+  rs =: "^$rgx$"
+  r =: qr(rs)
+  fn(s):
+    string?(s) ||:
+      die: |
+        Not a string:
+        $s
+    s =~ r ||:
+      die: |
+        String: "$s"
+        Does not match: $rs
+    =>: s
+
+defn dsl(s):
+  re-int-rng  =: /^(-?\d+)?\.\.(-?\d+)?$/
+  re-flt-rng  =: /^(-?\d+\.\d+)?\.\.(-?\d+\.\d+)?$/
+  re-regex    =: /^\/(.*)\/$/
+
+  condp \(%2 =~ %1) s:
+    re-int-rng:
+      m x y =: s =~ re-int-rng
+      comp:
+        deft-rng: x y
+        deft-int:
+    re-flt-rng:
+      m x y =: s =~ re-flt-rng
+      deft-rng: x y
+    re-regex:
+      m r =: s =~ re-regex
+      deft-rgx: r
+    else: die("Bad schemays type spec:\ '$s'")
